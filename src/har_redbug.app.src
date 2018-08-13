@@ -1,0 +1,11 @@
+{application, har_redbug,
+ [{description, "Create HAR (HTTP Archive) files using Redbug tracing"},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {applications,
+   [kernel,
+    stdlib
+   ]},
+  {env,[]},
+  {modules, []}
+ ]}.

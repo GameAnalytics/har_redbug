@@ -13,8 +13,9 @@ As the name implies, this tool is based on [redbug][redbug].
 
 Currently supported:
 
-* cowboy (incoming requests)
+* cowboy 1 and 2 (incoming requests)
 * shotgun (outgoing requests)
+* hackney (outgoing requests)
 
 [har-format]: http://www.softwareishard.com/blog/har-12-spec/
 [har-viewer]: https://chrome.google.com/webstore/detail/http-archive-viewer/ebbdbdmhegaoooipfnjikefdpeoaidml

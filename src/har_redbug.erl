@@ -31,7 +31,10 @@ main(Args) ->
            "cowboy_req:reply",
            %% outgoing requests through shotgun
            "shotgun:open/4",
-           "shotgun:post -> return"]).
+           "shotgun:post -> return",
+           %% outgoing requests through hackney
+           "hackney:request/5 -> return",
+           "hackney:body/1 -> return"]).
 
 -record(state,
         {parent_pid,
@@ -274,6 +277,63 @@ process_event(retn, {{shotgun, post, _}, {ok, Response}}, _Pid) ->
                     size => iolist_size(Body),
                     text => iolist_to_binary(Body)}}};
 
+%%% Outgoing requests through Hackney
+
+process_event(call, {{hackney, request, [_Method, Url, _Headers, _Body, _Options]}, _}, _Pid) when is_tuple(Url) ->
+    %% Ignore hackney_url records - we should get another call with
+    %% the URL as a binary.
+    nothing;
+process_event(call, {{hackney, request, [Method, Url, Headers, Body, _Options]}, _}, _Pid) when is_binary(Url) ->
+    {outgoing,
+     hackney,
+     #{method => atom_to_binary(Method, latin1),
+       url => Url,
+       httpVersion => <<"HTTP/1.1">>,
+       queryString => [],
+       headers => [#{name => Name, value => Value} || {Name, Value} <- Headers],
+       headersSize => -1,
+       bodySize => iolist_size(Body),
+       cookies => [],
+       postData => #{mimeType => content_type(Headers),
+                     text => iolist_to_binary(Body)}}};
+
+process_event(retn, {{hackney, request, 5}, {ok, StatusCode, ResponseHeaders, BodyRef}}, _Pid) ->
+    %% Need to wait for hackney:body/1 call...
+    put({hackney, BodyRef}, {StatusCode, ResponseHeaders}),
+    nothing;
+
+process_event(call, {{hackney, body, [BodyRef]}, _}, Pid) ->
+    case get({hackney, BodyRef}) of
+        undefined -> nothing;
+        {StatusCode, ResponseHeaders} ->
+            erase({hackney, BodyRef}),
+            put({hackney, Pid}, {StatusCode, ResponseHeaders}),
+            %% Wait for hackney:body/1 to return
+            nothing
+    end;
+process_event(retn, {{hackney, body, 1}, {ok, Body}}, Pid) ->
+    HttpVersion = <<"HTTP/1.1">>,
+    case get({hackney, Pid}) of
+        undefined -> nothing;
+        {StatusCode, Headers} ->
+            erase({hackney, Pid}),
+            {response,
+             hackney,
+             #{status => StatusCode,
+               statusText => <<>>,
+               httpVersion => HttpVersion,
+               headers => [#{name => Name, value => iolist_to_binary(Value)}
+                           || {Name, Value} <- Headers],
+               headersSize => -1,
+               bodySize => iolist_size(Body),
+               redirectURL => <<>>,
+               cookies => [],
+               content => #{mimeType => content_type(Headers),
+                            size => iolist_size(Body),
+                            text => iolist_to_binary(Body)}}}
+    end;
+
+%%% Log unknown events
 
 process_event(Tag, Data, _) ->
     error_logger:info_report([{ignored_tag, Tag},

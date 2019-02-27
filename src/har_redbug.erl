@@ -34,7 +34,8 @@ main(Args) ->
            "shotgun:post -> return",
            %% outgoing requests through hackney
            "hackney:request/5 -> return",
-           "hackney:body/1 -> return"]).
+           "hackney:body/1 -> return",
+           "hackney:body/2 -> return"]).
 
 -record(state,
         {parent_pid,
@@ -302,7 +303,9 @@ process_event(retn, {{hackney, request, 5}, {ok, StatusCode, ResponseHeaders, Bo
     put({hackney, BodyRef}, {StatusCode, ResponseHeaders}),
     nothing;
 
-process_event(call, {{hackney, body, [BodyRef]}, _}, Pid) ->
+%% Handle both hackney:body/1 and hackney:body/2 - the reference is
+%% the first argument for both.
+process_event(call, {{hackney, body, [BodyRef | _]}, _}, Pid) ->
     case get({hackney, BodyRef}) of
         undefined -> nothing;
         {StatusCode, ResponseHeaders} ->
@@ -311,7 +314,7 @@ process_event(call, {{hackney, body, [BodyRef]}, _}, Pid) ->
             %% Wait for hackney:body/1 to return
             nothing
     end;
-process_event(retn, {{hackney, body, 1}, {ok, Body}}, Pid) ->
+process_event(retn, {{hackney, body, _}, {ok, Body}}, Pid) ->
     HttpVersion = <<"HTTP/1.1">>,
     case get({hackney, Pid}) of
         undefined -> nothing;

@@ -1,6 +1,8 @@
 har_redbug
 =====
 
+[![Build Status](https://travis-ci.org/GameAnalytics/har_redbug.svg?branch=master)](https://travis-ci.org/GameAnalytics/har_redbug)
+
 Attach to an Erlang node, trace both incoming and outgoing HTTP
 requests, and write a file in [HAR format][har-format].
 

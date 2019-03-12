@@ -9,6 +9,12 @@ select the "Network" tab, and drag and drop the HAR file into the
 window.  You can also use the [HTTP Archive Viewer Chrome
 extension][har-viewer].
 
+The purpose of this tool is to get a transcript of HTTP requests for
+development, debugging, and documentation.  It is possible to achieve
+something similar by capturing network traffic using e.g. tcpdump or
+Wireshark, but that doesn't work as well when connections are
+encrypted.
+
 As the name implies, this tool is based on [redbug][redbug].
 
 Currently supported:
@@ -25,6 +31,11 @@ Build
 -----
 
     $ rebar3 compile && rebar3 escriptize
+
+This generates an escript archive in `_build/default/bin/har_redbug`.
+The archive is path-independent, so you can move it wherever you want.
+It only contains BEAM files, so it is platform-independent: you can
+run it anywhere you have `escript` in the path.
 
 Run
 ---
